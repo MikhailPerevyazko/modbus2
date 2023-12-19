@@ -4,7 +4,7 @@ use std::time::Duration;
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ModbusProto};
 
 
-pub fn client() {   
+pub fn client() {
     let timeout = Duration::from_secs(1);
 
     let mut stream = TcpStream::connect("127.0.0.1:5500").unwrap();
@@ -16,7 +16,7 @@ pub fn client() {
 
     let mut request = Vec::new();
     mreq.generate_set_coils_bulk(8, &[true, true], &mut request)
-        .unwrap();
+    .unwrap();
 
     stream.write(&request).unwrap();
 
@@ -45,6 +45,7 @@ pub fn client() {
         stream.read_exact(&mut rest).unwrap();
         response.extend(rest);
     }
+    
     let mut data = Vec::new();
     mreq.parse_bool(&response, &mut data).unwrap();
     for i in 0..data.len() {

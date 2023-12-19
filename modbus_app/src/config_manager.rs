@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ConfigItems {
+pub struct ConfigItems {
     host: String,
     port: i64,
     pause: i64,
@@ -14,8 +14,6 @@ pub struct Config {
     config: Vec<ConfigItems>,
 }
 
-pub fn read_file(state: tauri::State<PathState>) -> String {
-    let file = std::fs::File::open(state.path()).unwrap();
-    return file;
-    modules::get_path(); 
+pub fn read_file(state: State<PathState>) -> String {
+    let file:= std::fs::File::open(state.path()).unwrap();
 }
