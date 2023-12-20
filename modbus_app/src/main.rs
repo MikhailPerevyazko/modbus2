@@ -3,5 +3,5 @@ mod modbus_manager;
 mod config_manager;
 
 fn main() {
-    println!("Hello, world!");
+    println!("Hello world!");
 }

@@ -1,19 +1,23 @@
 use serde::{Deserialize, Serialize};
+use serde_yaml;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigItems {
-    host: String,
-    port: i64,
-    pause: i64,
-    var_name: String,
-    storage_type: String
+    pub host: String,
+    pub port: i64,
+    pub pause: i64,
+    pub var_name: String,
+    pub storage_type: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    config: Vec<ConfigItems>,
+    pub config: Vec<ConfigItems>,
 }
 
-pub fn read_file(state: State<PathState>) -> String {
-    let file:= std::fs::File::open(state.path()).unwrap();
+pub fn file_open(state::<PathState>) -> String {
+    let open_file: = std::fs::File::open(state.path()).unwrap();
+    let string_file = serde_yaml::from_reader(open_file).unwrap();
+    let file = serde_yaml::to_string_pretty(&string_file).unwarp();
+    file;
 }

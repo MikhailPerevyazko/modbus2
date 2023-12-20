@@ -15,7 +15,7 @@ pub fn get_path() {
 
     pub struct PathState(PathBuf);
     impl PathState {
-        fn path(&self) -> PathBuf {
+        pub fn path(&self) -> PathBuf {
             self.0.to_owned()
         }
     }
