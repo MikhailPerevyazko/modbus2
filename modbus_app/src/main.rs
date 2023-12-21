@@ -1,7 +1,7 @@
-use crate::{cmd::get_path, config_manger::Config};
+use crate::{cmd::get_path, config_manager::Config};
 
 mod cmd;
-mod config_manger;
+mod config_manager;
 mod modbus_manager;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Hello world!");
