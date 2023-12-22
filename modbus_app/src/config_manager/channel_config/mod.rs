@@ -1,18 +1,19 @@
 use std::{net::TcpStream, time::Duration};
 
+use getset::Getters;
 use serde::Deserialize;
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 /// Структура описывает конфигурацию соединения с клиентом modbus
 pub struct ChannelConfig {
     /// Адрес устройства
-    host: Option<String>,
+    pub host: Option<String>,
     /// порт устройства
-    port: Option<u32>,
+    pub port: Option<u32>,
     /// UART device path
-    path: Option<String>,
+    //path: Option<String>,
     /// Настройка скорости приема передачи в бот
-    baud_rate: Option<u64>,
-    timeout: Option<f64>,
+    pub baud_rate: Option<f64>,
+    pub timeout: Option<f64>,
 }
 
 impl From<ChannelConfig> for ChannelTcp {
@@ -37,7 +38,9 @@ pub trait Connect {
     type Output;
     fn connect(&self) -> Self::Output;
 }
-struct ChannelTcp {
+#[derive(Getters)]
+#[get = "pub"]
+pub struct ChannelTcp {
     host: String,
     port: u32,
     timeout: Duration,

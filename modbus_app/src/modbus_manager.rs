@@ -3,10 +3,12 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
 
+//pub use crate::Config::try_read_config_file;
+
 pub fn client() {
     let timeout = Duration::from_secs(1);
     //Подключение к локальному хосту
-    let mut stream = TcpStream::connect("127.0.0.1:5500").unwrap();
+    let mut stream = TcpStream::connect("127.0.0.1").unwrap();
     stream.set_read_timeout(Some(timeout)).unwrap();
     stream.set_write_timeout(Some(timeout)).unwrap();
     //Содаем пустой запрос modbus
