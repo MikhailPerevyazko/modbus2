@@ -1,5 +1,5 @@
 use clap::parser::Values;
-use rmodbus::{client::ModbusRequest, ErrorKind, ModbusProto};
+use rmodbus::{client::ModbusRequest, guess_response_frame_len, ErrorKind, ModbusProto};
 use serde::de::value;
 //use serde::de::value;
 
@@ -11,8 +11,9 @@ pub struct Task {
     start: u16,
     count: u16,
     data: Vec<u16>,
+    mreq: Option<ModbusRequest>,
 }
-
+#[derive(Clone)]
 enum ProtocolType {
     Tcp,
     Uart,
@@ -29,12 +30,19 @@ enum CommandType {
     PresetMultipleRegisters,
 }
 
+impl Into<ModbusProto> for ProtocolType {
+    fn into(self) -> ModbusProto {
+        match &self {
+            ProtocolType::Tcp => ModbusProto::TcpUdp,
+            ProtocolType::Uart => ModbusProto::Rtu,
+        }
+    }
+}
+
 impl Task {
-    pub fn generate_request(&self) -> Result<(Vec<u8>, ModbusRequest), rmodbus::ErrorKind> {
-        let mut mreq = match &self.protocol {
-            ProtocolType::Tcp => ModbusRequest::new(self.unit_id, ModbusProto::TcpUdp),
-            ProtocolType::Uart => ModbusRequest::new(self.unit_id, ModbusProto::Rtu),
-        };
+    pub fn generate_request(&mut self) -> Result<Vec<u8>, rmodbus::ErrorKind> {
+        let mut mreq = ModbusRequest::new(self.unit_id, self.protocol.to_owned().into());
+
         mreq.tr_id = self.id;
         let mut request = Vec::new();
         match &self.command {
@@ -82,9 +90,9 @@ impl Task {
                     return Err(ErrorKind::Acknowledge)?;
                 }
             }
-            _ => {}
         }
-        Ok((request, mreq))
+        self.mreq = Some(mreq);
+        Ok(request)
     }
 }
 
@@ -95,7 +103,7 @@ mod tests {
     use super::*;
     #[test]
     fn tcp_read_coil() -> Result<(), ErrorKind> {
-        let task = Task {
+        let mut task = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -103,11 +111,12 @@ mod tests {
             start: 0,
             count: 2,
             data: vec![],
+            mreq: None,
         };
         let result = task.generate_request()?;
-        println!("request: {:?}", result.0);
+        println!("request: {:?}", result);
         assert_eq!(
-            &result.0,
+            &result,
             &[0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x01, 0, 0, 0, 0x02]
         );
         Ok(())
@@ -115,7 +124,7 @@ mod tests {
 
     #[test]
     fn tcp_read_input_status() -> Result<(), ErrorKind> {
-        let task_two = Task {
+        let mut task_two = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -123,11 +132,12 @@ mod tests {
             start: 0,
             count: 2,
             data: vec![],
+            mreq: None,
         };
-        let result_two: (Vec<u8>, ModbusRequest) = task_two.generate_request()?;
-        println!("request: {:?}", result_two.0);
+        let result_two = task_two.generate_request()?;
+        println!("request: {:?}", result_two);
         assert_eq!(
-            &result_two.0,
+            &result_two,
             &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x02, 0, 0, 0, 0x02]
         );
         Ok(())
@@ -135,7 +145,7 @@ mod tests {
 
     #[test]
     fn tcp_read_holding_registers() -> Result<(), ErrorKind> {
-        let task_three = Task {
+        let mut task_three = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -143,11 +153,12 @@ mod tests {
             start: 0,
             count: 2,
             data: vec![],
+            mreq: None,
         };
-        let result_three: (Vec<u8>, ModbusRequest) = task_three.generate_request()?;
-        println!("request: {:?}", result_three.0);
+        let result_three = task_three.generate_request()?;
+        println!("request: {:?}", result_three);
         assert_eq!(
-            &result_three.0,
+            &result_three,
             &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0, 0, 0, 0x02]
         );
         Ok(())
@@ -155,7 +166,7 @@ mod tests {
 
     #[test]
     fn tcp_read_input_registers() -> Result<(), ErrorKind> {
-        let task_four = Task {
+        let mut task_four = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -163,11 +174,12 @@ mod tests {
             start: 0,
             count: 2,
             data: vec![],
+            mreq: None,
         };
-        let result_four: (Vec<u8>, ModbusRequest) = task_four.generate_request()?;
-        println!("request: {:?}", result_four.0);
+        let result_four = task_four.generate_request()?;
+        println!("request: {:?}", result_four);
         assert_eq!(
-            &result_four.0,
+            &result_four,
             &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x04, 0, 0, 0, 0x02]
         );
         Ok(())
@@ -175,21 +187,97 @@ mod tests {
 
     #[test]
     fn tcp_force_single_coil() -> Result<(), ErrorKind> {
-        let task_five = Task {
+        let mut task_five = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
             command: CommandType::ForceSingleCoil,
-            start: 0,
-            count: 2,
-            data: vec![],
+            start: 1,
+            count: 1,
+            data: vec![1],
+            mreq: None,
         };
-        let result_five: (Vec<u8>, ModbusRequest) = task_five.generate_request()?;
-        println!("request: {:?}", result_five.0);
+        let result_five = task_five.generate_request()?;
+        println!("request: {:?}", result_five);
         assert_eq!(
-            &result_five.0,
-            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x05, 0, 0x01, 0x11, 0x00]
+            &result_five,
+            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x05, 0, 0x01, 0xFF, 0x00]
         );
         Ok(())
+    }
+
+    #[test]
+    fn tcp_preset_single_register() -> Result<(), ErrorKind> {
+        let mut task_six = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::PresetSingleRegister,
+            start: 1,
+            count: 1,
+            data: vec![0x55FF],
+            mreq: None,
+        };
+        let result_six = task_six.generate_request()?;
+        println!("request: {:?}", result_six);
+        assert_eq!(
+            &result_six,
+            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x06, 0, 0x01, 0x55, 0xFF]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn tcp_preset_multiple_register() -> Result<(), ErrorKind> {
+        let mut task_seven = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::PresetMultipleRegisters,
+            start: 0,
+            count: 2,
+            data: vec![0x000A, 0x0102],
+            mreq: None,
+        };
+        let result_seven = task_seven.generate_request()?;
+        println!("request: {:?}", result_seven);
+        assert_eq!(
+            &result_seven,
+            &[
+                0, 0x01, 0x00, 0x00, 0x00, 0x0B, 0x01, 0x10, 0, 0x00, 0x00, 0x02, 0x04, 0x00, 0x0A,
+                0x01, 0x02
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn tcp_force_multiple_coils() -> Result<(), ErrorKind> {
+        let mut task_eight = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ForceMultipleCoils,
+            start: 0,
+            count: 2,
+            data: vec![0, 1],
+            mreq: None,
+        };
+        let result_eight = task_eight.generate_request()?;
+        println!("request: {:?}", result_eight);
+        assert_eq!(
+            &result_eight,
+            &[0, 0x01, 0x00, 0x00, 0x00, 0x08, 0x01, 0x0F, 0, 0x00, 0x00, 0x02, 0x01, 0x02]
+        );
+        Ok(())
+    }
+}
+
+impl Task {
+    pub fn get_responce_len(&self, data: &[u8]) -> Result<u8, ErrorKind> {
+        Ok(guess_response_frame_len(
+            data,
+            self.protocol.to_owned().into(),
+        )?)
     }
 }
