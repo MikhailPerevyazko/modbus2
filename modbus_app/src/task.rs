@@ -271,6 +271,174 @@ mod tests {
         );
         Ok(())
     }
+    #[test]
+    fn rtu_read_coil() -> Result<(), ErrorKind> {
+        let mut task_one_rtu = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Uart,
+            command: CommandType::ReadCoilStatus,
+            start: 19,
+            count: 37,
+            data: vec![],
+            mreq: None,
+        };
+        let result_one_rtu = task_one_rtu.generate_request()?;
+        println!("request: {:?}", result_one_rtu);
+        assert_eq!(
+            &result_one_rtu,
+            &[0x01, 0x01, 0x00, 0x13, 0x00, 0x25, 0x0C, 0x14]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rtu_read_input_status() -> Result<(), ErrorKind> {
+        let mut task_two_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::ReadInputStatus,
+            start: 196,
+            count: 22,
+            data: vec![],
+            mreq: None,
+        };
+        let result_two_rtu = task_two_rtu.generate_request()?;
+        println!("request: {:?}", result_two_rtu);
+        assert_eq!(
+            &result_two_rtu,
+            &[0x11, 0x02, 0x00, 0xC4, 0x00, 0x16, 0xBA, 0xA9]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rtu_read_holding_registers() -> Result<(), ErrorKind> {
+        let mut task_three_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::ReadHoldingRegisters,
+            start: 107,
+            count: 3,
+            data: vec![],
+            mreq: None,
+        };
+        let result_three_rtu = task_three_rtu.generate_request()?;
+        println!("request: {:?}", result_three_rtu);
+        assert_eq!(
+            &result_three_rtu,
+            &[0x11, 0x03, 0x00, 0x6B, 0x00, 0x03, 0x76, 0x87]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rtu_read_input_registers() -> Result<(), ErrorKind> {
+        let mut task_four_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::ReadInputRegisters,
+            start: 8,
+            count: 1,
+            data: vec![],
+            mreq: None,
+        };
+        let result_four_rtu = task_four_rtu.generate_request()?;
+        println!("request: {:?}", result_four_rtu);
+        assert_eq!(
+            &result_four_rtu,
+            &[0x11, 0x04, 0x00, 0x08, 0x00, 0x01, 0xB2, 0x98]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rtu_force_single_coil() -> Result<(), ErrorKind> {
+        let mut task_five_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::ForceSingleCoil,
+            start: 172,
+            count: 3,
+            data: vec![1],
+            mreq: None,
+        };
+        let result_five_rtu = task_five_rtu.generate_request()?;
+        println!("request: {:?}", result_five_rtu);
+        assert_eq!(
+            &result_five_rtu,
+            &[0x11, 0x05, 0x00, 0xAC, 0xFF, 0x00, 0x4E, 0x8B]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rtu_preset_single_register() -> Result<(), ErrorKind> {
+        let mut task_six_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::PresetSingleRegister,
+            start: 1,
+            count: 0,
+            data: vec![0x0003],
+            mreq: None,
+        };
+        let result_six_rtu = task_six_rtu.generate_request()?;
+        println!("request: {:?}", result_six_rtu);
+        assert_eq!(
+            &result_six_rtu,
+            &[0x11, 0x06, 0x00, 0x01, 0x00, 0x03, 0x9A, 0x9B]
+        );
+        Ok(())
+    }
+
+    // #[test]
+    // fn rtu_force_multiple_coils() -> Result<(), ErrorKind> {
+    //     let mut task_seven_rtu = Task {
+    //         id: 1,
+    //         unit_id: 17,
+    //         protocol: ProtocolType::Uart,
+    //         command: CommandType::ForceMultipleCoils,
+    //         start: 19,
+    //         count: 10,
+    //         data: vec![1,1,0,0,1,1,0,1,0,1],
+    //         mreq: None,
+    //     };
+    //     let result_seven_rtu = task_seven_rtu.generate_request()?;
+    //     println!("request: {:?}", result_seven_rtu);
+    //     assert_eq!(
+    //         &result_seven_rtu,
+    //         &[0x11, 0x0F, 0x00, 0x13, 0x00, 0x0A, 0x02, 0xCD, 0x01, 0xBF, 0x0B]
+    //     );
+    //     Ok(())
+    // }
+    #[test]
+    fn rtu_preset_multiple_registers() -> Result<(), ErrorKind> {
+        let mut task_eight_rtu = Task {
+            id: 1,
+            unit_id: 17,
+            protocol: ProtocolType::Uart,
+            command: CommandType::PresetMultipleRegisters,
+            start: 1,
+            count: 2,
+            data: vec![0x000A, 0x0102],
+            mreq: None,
+        };
+        let result_eight_rtu = task_eight_rtu.generate_request()?;
+        println!("request: {:?}", result_eight_rtu);
+        assert_eq!(
+            &result_eight_rtu,
+            &[0x11, 0x10, 0x00, 0x01, 0x00, 0x02, 0x04, 0x00, 0x0A, 0x01, 0x02, 0xC6, 0xF0]
+        );
+        Ok(())
+    }
+
+    
 }
 
 impl Task {
