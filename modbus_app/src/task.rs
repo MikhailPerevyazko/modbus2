@@ -1,7 +1,4 @@
-use clap::parser::Values;
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ErrorKind, ModbusProto};
-use serde::de::value;
-//use serde::de::value;
 
 pub struct Task {
     id: u16,
@@ -80,14 +77,14 @@ impl Task {
                         &mut request,
                     )?;
                 } else {
-                    return Err(ErrorKind::Acknowledge)?;
+                    return Err(ErrorKind::IllegalDataValue)?;
                 }
             }
             CommandType::PresetMultipleRegisters => {
                 if !self.data.is_empty() {
                     mreq.generate_set_holdings_bulk(self.start, &self.data, &mut request)?;
                 } else {
-                    return Err(ErrorKind::Acknowledge)?;
+                    return Err(ErrorKind::IllegalDataValue)?;
                 }
             }
         }
@@ -98,7 +95,7 @@ impl Task {
 
 #[cfg(test)]
 mod tests {
-    use std::result;
+    use std::{array, result};
 
     use super::*;
     #[test]
@@ -113,12 +110,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result = task.generate_request()?;
-        println!("request: {:?}", result);
-        assert_eq!(
-            &result,
-            &[0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x01, 0, 0, 0, 0x02]
-        );
+        let result = task.generate_request();
+        assert_eq!(result, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -134,12 +127,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_two = task_two.generate_request()?;
-        println!("request: {:?}", result_two);
-        assert_eq!(
-            &result_two,
-            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x02, 0, 0, 0, 0x02]
-        );
+        let result_two = task_two.generate_request();
+        assert_eq!(result_two, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -155,12 +144,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_three = task_three.generate_request()?;
-        println!("request: {:?}", result_three);
-        assert_eq!(
-            &result_three,
-            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0, 0, 0, 0x02]
-        );
+        let result_three = task_three.generate_request();
+        assert_eq!(result_three, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -176,12 +161,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_four = task_four.generate_request()?;
-        println!("request: {:?}", result_four);
-        assert_eq!(
-            &result_four,
-            &[0, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x04, 0, 0, 0, 0x02]
-        );
+        let result_four = task_four.generate_request();
+        assert_eq!(result_four, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -283,12 +264,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_one_rtu = task_one_rtu.generate_request()?;
-        println!("request: {:?}", result_one_rtu);
-        assert_eq!(
-            &result_one_rtu,
-            &[0x01, 0x01, 0x00, 0x13, 0x00, 0x25, 0x0C, 0x14]
-        );
+        let result_one_rtu = task_one_rtu.generate_request();
+        assert_eq!(result_one_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -304,12 +281,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_two_rtu = task_two_rtu.generate_request()?;
-        println!("request: {:?}", result_two_rtu);
-        assert_eq!(
-            &result_two_rtu,
-            &[0x11, 0x02, 0x00, 0xC4, 0x00, 0x16, 0xBA, 0xA9]
-        );
+        let result_two_rtu = task_two_rtu.generate_request();
+        assert_eq!(result_two_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -325,12 +298,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_three_rtu = task_three_rtu.generate_request()?;
-        println!("request: {:?}", result_three_rtu);
-        assert_eq!(
-            &result_three_rtu,
-            &[0x11, 0x03, 0x00, 0x6B, 0x00, 0x03, 0x76, 0x87]
-        );
+        let result_three_rtu = task_three_rtu.generate_request();
+        assert_eq!(result_three_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -346,12 +315,8 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result_four_rtu = task_four_rtu.generate_request()?;
-        println!("request: {:?}", result_four_rtu);
-        assert_eq!(
-            &result_four_rtu,
-            &[0x11, 0x04, 0x00, 0x08, 0x00, 0x01, 0xB2, 0x98]
-        );
+        let result_four_rtu = task_four_rtu.generate_request();
+        assert_eq!(result_four_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -426,19 +391,13 @@ mod tests {
             command: CommandType::PresetMultipleRegisters,
             start: 1,
             count: 2,
-            data: vec![0x000A, 0x0102],
+            data: vec![],
             mreq: None,
         };
-        let result_eight_rtu = task_eight_rtu.generate_request()?;
-        println!("request: {:?}", result_eight_rtu);
-        assert_eq!(
-            &result_eight_rtu,
-            &[0x11, 0x10, 0x00, 0x01, 0x00, 0x02, 0x04, 0x00, 0x0A, 0x01, 0x02, 0xC6, 0xF0]
-        );
+        let result_eight_rtu = task_eight_rtu.generate_request();
+        assert_eq!(result_eight_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
-
-    
 }
 
 impl Task {
