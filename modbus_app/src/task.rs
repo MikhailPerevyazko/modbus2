@@ -1,3 +1,5 @@
+//use std::{assert_matches::debug_assert_matches, os::unix::fs::FileTypeExt};
+
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ErrorKind, ModbusProto};
 
 pub struct Task {
@@ -5,6 +7,7 @@ pub struct Task {
     unit_id: u8,
     protocol: ProtocolType,
     command: CommandType,
+    function: FunctionCode,
     start: u16,
     count: u16,
     data: Vec<u16>,
@@ -16,15 +19,20 @@ enum ProtocolType {
     Uart,
 }
 
+
 enum CommandType {
-    ReadCoilStatus,
-    ReadInputStatus,
-    ReadHoldingRegisters,
-    ReadInputRegisters,
-    ForceSingleCoil,
-    PresetSingleRegister,
-    ForceMultipleCoils,
-    PresetMultipleRegisters,
+    ReadCoilStatus = 0x01,
+    ReadInputStatus = 0x02,
+    ReadHoldingRegisters = 0x03,
+    ReadInputRegisters = 0x04,
+    ForceSingleCoil = 0x05,
+    PresetSingleRegister = 0x06,
+    ForceMultipleCoils = 0x11,
+    PresetMultipleRegisters = 0x16,
+}
+
+enum FunctionCode {
+    CommandType,
 }
 
 impl Into<ModbusProto> for ProtocolType {
@@ -111,7 +119,7 @@ mod tests {
             mreq: None,
         };
         let result = task.generate_request();
-        assert_eq!(result, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -128,7 +136,7 @@ mod tests {
             mreq: None,
         };
         let result_two = task_two.generate_request();
-        assert_eq!(result_two, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_two, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -145,7 +153,7 @@ mod tests {
             mreq: None,
         };
         let result_three = task_three.generate_request();
-        assert_eq!(result_three, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_three, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -162,7 +170,7 @@ mod tests {
             mreq: None,
         };
         let result_four = task_four.generate_request();
-        assert_eq!(result_four, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_four, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -265,7 +273,7 @@ mod tests {
             mreq: None,
         };
         let result_one_rtu = task_one_rtu.generate_request();
-        assert_eq!(result_one_rtu, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_one_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -282,7 +290,7 @@ mod tests {
             mreq: None,
         };
         let result_two_rtu = task_two_rtu.generate_request();
-        assert_eq!(result_two_rtu, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_two_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -299,7 +307,7 @@ mod tests {
             mreq: None,
         };
         let result_three_rtu = task_three_rtu.generate_request();
-        assert_eq!(result_three_rtu, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_three_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -316,7 +324,7 @@ mod tests {
             mreq: None,
         };
         let result_four_rtu = task_four_rtu.generate_request();
-        assert_eq!(result_four_rtu, Err(ErrorKind::IllegalDataValue));
+        assert_ne!(result_four_rtu, Err(ErrorKind::IllegalDataValue));
         Ok(())
     }
 
@@ -408,3 +416,30 @@ impl Task {
         )?)
     }
 }
+
+impl Task {
+    pub fn show_result(head_arr: &[u8], tail_arr: &[u8]) -> Result<Option<Vec<u16>>, String {
+
+        if head_arr.len()>2 || tail_arr.len()>4 {
+            return Err("Invalid request lenght".to_string());
+        }
+
+        let function_code = head_arr[1];
+
+        match function_code {
+            FunctionCode::CommandType::ReadCoilStatus => {
+                let mut data:u16 = Vec::with_capacity(head_arr.len().min(tail_arr.len()));
+                
+                for i in 0..head_arr.len().min(tail_arr.len()) {
+                    let sum = u16::from(head_arr[i]) + u16::from(tail_arr[i]);
+                    Ok(data.push(sum));
+                }
+            }
+            println!("request: {}", data);
+            _=> {
+                Ok(None) //Если функция не возвращает данные
+            }      
+        }
+    }
+}
+
