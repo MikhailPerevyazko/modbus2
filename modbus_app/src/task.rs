@@ -7,7 +7,6 @@ pub struct Task {
     unit_id: u8,
     protocol: ProtocolType,
     command: CommandType,
-    function: FunctionCode,
     start: u16,
     count: u16,
     data: Vec<u16>,
@@ -19,20 +18,15 @@ enum ProtocolType {
     Uart,
 }
 
-
 enum CommandType {
-    ReadCoilStatus = 0x01,
-    ReadInputStatus = 0x02,
-    ReadHoldingRegisters = 0x03,
-    ReadInputRegisters = 0x04,
-    ForceSingleCoil = 0x05,
-    PresetSingleRegister = 0x06,
-    ForceMultipleCoils = 0x11,
-    PresetMultipleRegisters = 0x16,
-}
-
-enum FunctionCode {
-    CommandType,
+    ReadCoilStatus,
+    ReadInputStatus,
+    ReadHoldingRegisters,
+    ReadInputRegisters,
+    ForceSingleCoil,
+    PresetSingleRegister,
+    ForceMultipleCoils,
+    PresetMultipleRegisters,
 }
 
 impl Into<ModbusProto> for ProtocolType {
@@ -418,28 +412,65 @@ impl Task {
 }
 
 impl Task {
-    pub fn show_result(head_arr: &[u8], tail_arr: &[u8]) -> Result<Option<Vec<u16>>, String {
-
-        if head_arr.len()>2 || tail_arr.len()>4 {
-            return Err("Invalid request lenght".to_string());
-        }
-
-        let function_code = head_arr[1];
-
-        match function_code {
-            FunctionCode::CommandType::ReadCoilStatus => {
-                let mut data:u16 = Vec::with_capacity(head_arr.len().min(tail_arr.len()));
-                
-                for i in 0..head_arr.len().min(tail_arr.len()) {
-                    let sum = u16::from(head_arr[i]) + u16::from(tail_arr[i]);
-                    Ok(data.push(sum));
+    pub fn show_result(&self, head_arr: &[u8], tail_arr: &[u8],) -> Result<Option<Vec<u16>>, ErrorKind> {
+        let mut data = Vec::from(head_arr);
+        data.extend(tail_arr);
+        let res = match &self.mreq {
+            Some(mreq) => match &self.command {
+                CommandType::ReadCoilStatus | CommandType::ReadInputStatus => {
+                    let mut code_fn = Vec::new();
+                    mreq.parse_bool(&data, &mut code_fn)?;
+                    code_fn
+                        .iter()
+                        .map(|x| if x == &true { 1 } else { 0 })
+                        .collect::<Vec<u16>>()
                 }
-            }
-            println!("request: {}", data);
-            _=> {
-                Ok(None) //Если функция не возвращает данные
-            }      
-        }
+                CommandType::ReadInputRegisters | CommandType::ReadHoldingRegisters => {
+                    let mut code_fn = Vec::new();
+                    mreq.parse_u16(&data, &mut code_fn)?;
+                    code_fn
+                }
+                CommandType::ForceSingleCoil | CommandType::ForceMultipleCoils => {
+                    let mut code_fn = Vec::new();
+                    mreq.parse_bool(&data, &mut code_fn)?;
+                    code_fn
+                        .iter()
+                        .map(|x| if x == &true { 1 } else { 0 })
+                        .collect::<Vec<u16>>()
+                }
+                CommandType::PresetSingleRegister | CommandType::PresetMultipleRegisters => {
+                    let mut code_fn = Vec::new();
+                    mreq.parse_u16(&data, &mut code_fn)?;
+                    code_fn
+                }
+            },
+            None => Err(ErrorKind::Acknowledge)?,
+        };
+        Ok(res)
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use std::{array, result};
+
+    use super::*;
+    #[test]
+    fn show_result() > Result<(), ErrorKind> {
+        let mut task = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ReadCoilStatus,
+            start: 0,
+            count: 2,
+            data: vec![],
+            mreq: None,
+        };
+        let result = task.generate_request();
+        assert_ne!(result, Err(ErrorKind::IllegalDataValue));
+        Ok(())
+    }
+
+}
