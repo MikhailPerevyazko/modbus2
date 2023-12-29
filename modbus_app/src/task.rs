@@ -412,7 +412,11 @@ impl Task {
 }
 
 impl Task {
-    pub fn show_result(&self, head_arr: &[u8], tail_arr: &[u8],) -> Result<Option<Vec<u16>>, ErrorKind> {
+    pub fn show_result(
+        &self,
+        head_arr: &[u8],
+        tail_arr: &[u8],
+    ) -> Result<Option<Vec<u16>>, ErrorKind> {
         let mut data = Vec::from(head_arr);
         data.extend(tail_arr);
         let res = match &self.mreq {
@@ -446,19 +450,19 @@ impl Task {
             },
             None => Err(ErrorKind::Acknowledge)?,
         };
-        Ok(res)
+        Ok(Some(res))
     }
 }
 
-
 #[cfg(test)]
-mod tests {
-    use std::{array, result};
+use std::io::{stdout, Write};
+mod testss {
 
     use super::*;
+
     #[test]
-    fn show_result() > Result<(), ErrorKind> {
-        let mut task = Task {
+    fn test_show_result_read_coil_status() -> Result<(), ErrorKind> {
+        let mut taskk = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -468,9 +472,13 @@ mod tests {
             data: vec![],
             mreq: None,
         };
-        let result = task.generate_request();
-        assert_ne!(result, Err(ErrorKind::IllegalDataValue));
+        let mut head_arr: &[u8; 2] = [0x01, 0x01];
+        let mut tail_arr: &[u8] = ['_'; 0];
+        let result_one = taskk.show_result(&head_arr, &tail_arr);
+        println!("result_one: {:?}", result_one);
+        assert_eq!(
+            &result_one,
+            &);
         Ok(())
     }
-
 }
