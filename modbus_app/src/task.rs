@@ -456,13 +456,13 @@ impl Task {
 
 #[cfg(test)]
 use std::io::{stdout, Write};
-mod testss {
+mod tests_two {
 
     use super::*;
 
     #[test]
     fn test_show_result_read_coil_status() -> Result<(), ErrorKind> {
-        let mut taskk = Task {
+        let task = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -472,13 +472,11 @@ mod testss {
             data: vec![],
             mreq: None,
         };
-        let mut head_arr: &[u8; 2] = [0x01, 0x01];
-        let mut tail_arr: &[u8] = ['_'; 0];
-        let result_one = taskk.show_result(&head_arr, &tail_arr);
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x04];
+        let tail_arr = [0x01, 0x01, 0x01, 0x02];
+        let result_one = task.show_result(&head_arr, &tail_arr)?;
         println!("result_one: {:?}", result_one);
-        assert_eq!(
-            &result_one,
-            &);
+        assert_eq!(result_one, Some(vec![0 as u16, 1 as u16]));
         Ok(())
     }
 }
