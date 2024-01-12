@@ -434,18 +434,12 @@ impl Task {
                     mreq.parse_u16(&data, &mut code_fn)?;
                     code_fn
                 }
-                CommandType::ForceSingleCoil | CommandType::ForceMultipleCoils => {
-                    let mut code_fn = Vec::new();
-                    mreq.parse_bool(&data, &mut code_fn)?;
-                    code_fn
-                        .iter()
-                        .map(|x| if x == &true { 1 } else { 0 })
-                        .collect::<Vec<u16>>()
-                }
-                CommandType::PresetSingleRegister | CommandType::PresetMultipleRegisters => {
-                    let mut code_fn = Vec::new();
-                    mreq.parse_u16(&data, &mut code_fn)?;
-                    code_fn
+                CommandType::ForceSingleCoil
+                | CommandType::ForceMultipleCoils
+                | CommandType::PresetSingleRegister
+                | CommandType::PresetMultipleRegisters => {
+                    mreq.parse_ok(&data)?;
+                    return Ok(None);
                 }
             },
             None => Err(ErrorKind::Acknowledge)?,
@@ -457,12 +451,11 @@ impl Task {
 #[cfg(test)]
 use std::io::{stdout, Write};
 mod tests_two {
-
     use super::*;
-
+    use std::result;
     #[test]
     fn test_show_result_read_coil_status() -> Result<(), ErrorKind> {
-        let task = Task {
+        let mut task_one = Task {
             id: 1,
             unit_id: 1,
             protocol: ProtocolType::Tcp,
@@ -474,9 +467,157 @@ mod tests_two {
         };
         let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x04];
         let tail_arr = [0x01, 0x01, 0x01, 0x02];
-        let result_one = task.show_result(&head_arr, &tail_arr)?;
+        task_one.generate_request()?;
+        let result_one = task_one.show_result(&head_arr, &tail_arr)?;
         println!("result_one: {:?}", result_one);
         assert_eq!(result_one, Some(vec![0 as u16, 1 as u16]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_read_input_status() -> Result<(), ErrorKind> {
+        let mut task_two = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ReadInputStatus,
+            start: 0,
+            count: 2,
+            data: vec![1, 1],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x04];
+        let tail_arr = [0x01, 0x02, 0x01, 0x03];
+        task_two.generate_request()?;
+        let result_two = task_two.show_result(&head_arr, &tail_arr)?;
+        println!("result_two: {:?}", result_two);
+        assert_eq!(&result_two, &Some(vec![1 as u16, 1 as u16]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_read_input_registers() -> Result<(), ErrorKind> {
+        let mut task_three = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ReadInputRegisters,
+            start: 1,
+            count: 2,
+            data: vec![],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x07];
+        let tail_arr = [0x01, 0x04, 0x04, 0x00, 0x0A, 0x00, 0x64];
+        task_three.generate_request()?;
+        let result_three = task_three.show_result(&head_arr, &tail_arr)?;
+        println!("result_three: {:?}", result_three);
+        assert_eq!(result_three, Some(vec![10 as u16, 100 as u16]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_read_holding_registers() -> Result<(), ErrorKind> {
+        let mut task_four = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ReadHoldingRegisters,
+            start: 1,
+            count: 2,
+            data: vec![],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x07];
+        let tail_arr = [0x01, 0x03, 0x04, 0x02, 0x2B, 0x00, 0x64];
+        task_four.generate_request()?;
+        let result_four = task_four.show_result(&head_arr, &tail_arr)?;
+        println!("result_four: {:?}", result_four);
+        assert_eq!(result_four, Some(vec![555 as u16, 100 as u16]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_force_single_coil() -> Result<(), ErrorKind> {
+        let mut task_five = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ForceSingleCoil,
+            start: 1,
+            count: 1,
+            data: vec![1],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x06];
+        let tail_arr = [0x01, 0x05, 0x00, 0x01, 0xFF, 0x00];
+        task_five.generate_request()?;
+        let result_five = task_five.show_result(&head_arr, &tail_arr)?;
+        println!("result_five: {:?}", result_five);
+        assert_eq!(result_five, None);
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_force_multiple_coils() -> Result<(), ErrorKind> {
+        let mut task_six = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ForceMultipleCoils,
+            start: 0,
+            count: 2,
+            data: vec![0, 1],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x06];
+        let tail_arr = [0x01, 0x0F, 0x00, 0x00, 0x00, 0x02];
+        task_six.generate_request()?;
+        let result_six = task_six.show_result(&head_arr, &tail_arr)?;
+        println!("result_six: {:?}", result_six);
+        assert_eq!(result_six, None);
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_preset_single_register() -> Result<(), ErrorKind> {
+        let mut task_seven = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::PresetSingleRegister,
+            start: 0,
+            count: 1,
+            data: vec![0x55FF],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x06];
+        let tail_arr = [0x01, 0x06, 0x00, 0x01, 0x55, 0xFF];
+        task_seven.generate_request()?;
+        let result_seven = task_seven.show_result(&head_arr, &tail_arr)?;
+        println!("result_seven: {:?}", result_seven);
+        assert_eq!(result_seven, None);
+        Ok(())
+    }
+
+    #[test]
+    fn test_show_result_preset_multiple_registers() -> Result<(), ErrorKind> {
+        let mut task_eight = Task {
+            id: 1,
+            unit_id: 1,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::PresetMultipleRegisters,
+            start: 0,
+            count: 2,
+            data: vec![0x000A, 0x0102],
+            mreq: None,
+        };
+        let head_arr = [0x00, 0x01, 0x00, 0x00, 0x00, 0x06];
+        let tail_arr = [0x01, 0x10, 0x00, 0x00, 0x00, 0x02];
+        task_eight.generate_request()?;
+        let result_eight = task_eight.show_result(&head_arr, &tail_arr)?;
+        println!("result_eight: {:?}", result_eight);
+        assert_eq!(result_eight, None);
         Ok(())
     }
 }
