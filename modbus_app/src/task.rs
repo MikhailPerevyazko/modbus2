@@ -1,6 +1,9 @@
 //use std::{assert_matches::debug_assert_matches, os::unix::fs::FileTypeExt};
 
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ErrorKind, ModbusProto};
+use serde::{Deserialize, Serialize};
+use std::io::Read;
+use std::{fs::File, path::PathBuf};
 
 pub struct Task {
     id: u16,
@@ -12,7 +15,18 @@ pub struct Task {
     data: Vec<u16>,
     mreq: Option<ModbusRequest>,
 }
-#[derive(Clone)]
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Variables {
+    pub storage_one: String,
+    pub id: u16,
+    pub unit_id: u8,
+    pub name: u16,
+    pub start: u16,
+    pub storage_two: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 enum ProtocolType {
     Tcp,
     Uart,
@@ -416,7 +430,8 @@ impl Task {
         &self,
         head_arr: &[u8],
         tail_arr: &[u8],
-    ) -> Result<Option<Vec<u16>>, ErrorKind> {
+    ) -> Result<Option<Vec<u16>>, rmodbus::ErrorKind> {
+        // обработка ошибки
         let mut data = Vec::from(head_arr);
         data.extend(tail_arr);
         let res = match &self.mreq {
@@ -451,6 +466,8 @@ impl Task {
 #[cfg(test)]
 use std::io::{stdout, Write};
 mod tests_two {
+    use clap::error;
+
     use super::*;
     use std::result;
     #[test]

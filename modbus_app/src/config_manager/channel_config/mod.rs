@@ -55,8 +55,8 @@ impl ChannelTcp {
 impl Connect for ChannelTcp {
     type Output = Result<TcpStream, Box<dyn std::error::Error>>;
     fn connect(&self) -> Self::Output {
-        let mut stream = TcpStream::connect(self.url())?;
-        stream.set_nonblocking(true);
+        let stream = TcpStream::connect(self.url())?;
+        stream.set_nonblocking(true)?;
         stream.set_read_timeout(Some(self.timeout.clone()))?;
         stream.set_write_timeout(Some(self.timeout.clone()))?;
         Ok(stream)

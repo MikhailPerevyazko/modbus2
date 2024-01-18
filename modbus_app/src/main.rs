@@ -13,7 +13,6 @@ mod config_manager;
 mod modbus_manager;
 mod task;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Hello world!");
     let configs = Config::try_read_config_file(get_path())?;
     let modbus_tcp_config = ChannelTcp::from(configs.channel().to_owned());
     loop {

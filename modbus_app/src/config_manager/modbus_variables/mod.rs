@@ -1,10 +1,5 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-pub struct ModbusConfigVariable {
-    storage: String,
-}
-
 pub enum ModbusStorage {
     DI,
     DO,
@@ -22,4 +17,34 @@ impl From<String> for ModbusStorage {
             _ => ModbusStorage::AI,
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+//Структура описывает конфигурацию modbus запроса
+pub struct ConfigItem {
+    pub storage: String,
+    pub id: u16,
+    pub unit_id: u8,
+    pub name: String,
+    pub start: u16,
+}
+
+impl From<ConfigItem> for ModbusRequestItems {
+    fn from(value: ConfigItem) -> Self {
+        Self {
+            storage: ModbusStorage::from(value.storage.to_owned()),
+            id: value.id,
+            unit_id: value.unit_id,
+            name: value.name,
+            start: value.start,
+        }
+    }
+}
+
+struct ModbusRequestItems {
+    pub storage: ModbusStorage,
+    pub id: u16,
+    pub unit_id: u8,
+    pub name: String,
+    pub start: u16,
 }
