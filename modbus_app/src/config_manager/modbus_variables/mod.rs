@@ -41,7 +41,7 @@ impl From<ConfigItem> for ModbusRequestItems {
     }
 }
 
-struct ModbusRequestItems {
+pub struct ModbusRequestItems {
     pub storage: ModbusStorage,
     pub id: u16,
     pub unit_id: u8,

@@ -1,5 +1,6 @@
 //use std::{assert_matches::debug_assert_matches, os::unix::fs::FileTypeExt};
 
+use alloc::task;
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ErrorKind, ModbusProto};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
@@ -18,13 +19,33 @@ pub struct Task {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Variables {
-    pub storage_one: String,
+    pub storage: String,
     pub id: u16,
     pub unit_id: u8,
     pub name: u16,
     pub start: u16,
-    pub storage_two: String,
 }
+
+impl Variables {
+    pub fn from_variables_to_task(&self) -> Task {
+        let task = Task {
+            id: self.id,
+            unit_id: self.unit_id,
+            protocol: ProtocolType::Tcp,
+            command: CommandType::ReadCoilStatus,
+            start: self.start,
+            count: 2,
+            data: vec![],
+            mreq: None,
+        };
+    }
+}
+
+let variables = Variables {
+
+}
+
+let task = Task.from_variables_to_task();
 
 #[derive(Debug, Deserialize, Clone)]
 enum ProtocolType {
